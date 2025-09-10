@@ -29,15 +29,6 @@
 
 A TypeScript-first Next.js app with tRPC, TanStack Query, Prisma, Supabase Auth, and OpenAI integration for a career counseling chat experience.
 
-## Tech Stack
-- Next.js App Router, React 19
-- TypeScript (strict)
-- tRPC 11 + TanStack Query
-- Prisma 6 + PostgreSQL (Supabase/Neon)
-- Supabase Auth (SSR helpers)
-- OpenAI (chat completions)
-- TailwindCSS 4 + shadcn/ui
-
 ## Local Setup
 1. Install deps
 ```bash
