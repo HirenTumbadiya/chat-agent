@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/////////////////////////////////////
+// Supabase auth.users integration //
+/////////////////////////////////////
+
+model User {
+  id        String   @id @default(uuid()) @map("id") @db.Uuid
+  email     String?  @db.VarChar
+  createdAt DateTime @default(now()) @map("created_at")
+
+  profile      Profile?
+  sessions     ChatSession[]
+  messages     ChatMessage[]
+
+  @@map("auth.users")
+}
+
+//////////////////////
+// Profile table    //
+//////////////////////
+
+model Profile {
+  id        String   @id @default(uuid())
+  userId    String   @unique @db.Uuid
+  username  String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+//////////////////////
+// ChatSession      //
+//////////////////////
+
+model ChatSession {
+  id        String        @id @default(uuid()) @db.Uuid
+  userId    String        @db.Uuid
+  title     String?
+  createdAt DateTime      @default(now())
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+}
+
+//////////////////////
+// ChatMessage      //
+//////////////////////
+
+model ChatMessage {
+  id        String       @id @default(uuid())
+  sessionId String       @db.Uuid
+  senderId  String       @db.Uuid
+  role      String       // "user" | "assistant" | "system"
+  content   String
+  createdAt DateTime     @default(now())
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sender  User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
