@@ -4,7 +4,7 @@
 
 ---
 
-![Last Commit](https://img.shields.io/github/last-commit/your-username/chat-agent?color=blue&label=last%20commit)
+![Last Commit](https://img.shields.io/github/last-commit/HirenTumbadiya/chat-agent?color=blue&label=last%20commit)
 ![TypeScript](https://img.shields.io/badge/typescript-94.4%25-blue)
 ![Languages](https://img.shields.io/badge/languages-3-brightgreen)
 
