@@ -1,15 +1,33 @@
-# Oration AI - Career Counselor Chat (Next.js + tRPC)
+# CHAT-AGENT
+
+*Empowering Conversations, Unlocking Career Success Instantly*
+
+---
+
+![Last Commit](https://img.shields.io/github/last-commit/HirenTumbadiya/chat-agent?color=blue&label=last%20commit)
+![TypeScript](https://img.shields.io/badge/typescript-94.4%25-blue)
+![Languages](https://img.shields.io/badge/languages-3-brightgreen)
+
+---
+
+### Built with the tools and technologies:
+
+![JSON](https://img.shields.io/badge/JSON-black?logo=json&logoColor=white)
+![Markdown](https://img.shields.io/badge/Markdown-black?logo=markdown&logoColor=white)
+![npm](https://img.shields.io/badge/npm-CB3837?logo=npm&logoColor=white)
+![Prettier](https://img.shields.io/badge/Prettier-F7B93E?logo=prettier&logoColor=black)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
+![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-2D3748?logo=prisma&logoColor=white)
+![Zod](https://img.shields.io/badge/Zod-2B6CB0?logo=zod&logoColor=white)
+![ESLint](https://img.shields.io/badge/ESLint-4B32C3?logo=eslint&logoColor=white)
+![OpenAI](https://img.shields.io/badge/OpenAI-412991?logo=openai&logoColor=white)
+![React Hook Form](https://img.shields.io/badge/React%20Hook%20Form-EC5990?logo=reacthookform&logoColor=white)
+![YAML](https://img.shields.io/badge/YAML-CB171E?logo=yaml&logoColor=white)
+
 
 A TypeScript-first Next.js app with tRPC, TanStack Query, Prisma, Supabase Auth, and OpenAI integration for a career counseling chat experience.
-
-## Tech Stack
-- Next.js App Router, React 19
-- TypeScript (strict)
-- tRPC 11 + TanStack Query
-- Prisma 6 + PostgreSQL (Supabase/Neon)
-- Supabase Auth (SSR helpers)
-- OpenAI (chat completions)
-- TailwindCSS 4 + shadcn/ui
 
 ## Local Setup
 1. Install deps
