@@ -152,7 +152,7 @@ export function ChatInterface({ chatId, user: _user, onBack }: ChatInterfaceProp
                   message.role === "user" ? "items-end" : "items-start"
                 }`}
               >
-                <Card className={`${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-card"}`}>
+                <Card className={`${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-card"} p-0`}>
                   <CardContent className="p-2 sm:p-3">
                     <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
                   </CardContent>
