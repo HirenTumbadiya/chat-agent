@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import React from "react";
 import { createClient } from "@/utils/supabase/server";
 import SessionProvider from "./SessionProvider";
+import { ThemeProvider } from "@/components/ui/theme-provider";
 
 export default async function Layout({
     children,
@@ -16,7 +17,9 @@ export default async function Layout({
 
     return (
         <SessionProvider >
-            {children}
+            <ThemeProvider>
+                {children}
+            </ThemeProvider>
         </SessionProvider>
     );
 }

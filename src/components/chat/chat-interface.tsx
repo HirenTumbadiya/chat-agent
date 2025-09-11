@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useRef, useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -10,6 +11,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ArrowLeft, Send, Bot, UserIcon, Loader2 } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { api } from "@/utils/trpc"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface ChatUser {
   id: string
@@ -20,13 +22,18 @@ interface ChatUser {
 interface ChatInterfaceProps {
   chatId: string
   user: ChatUser
-  onBack: () => void
+  onBack?: () => void
 }
 
 export function ChatInterface({ chatId, user: _user, onBack }: ChatInterfaceProps) {
+  const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [prompt, setPrompt] = useState("")
+  const [streaming, setStreaming] = useState(false)
+  const [streamBuffer, setStreamBuffer] = useState("")
+  const [streamError, setStreamError] = useState<string | null>(null)
+  const [optimisticMessages, setOptimisticMessages] = useState<Array<{ id: string; role: "user" | "assistant"; content: string; createdAt: Date }>>([])
 
   // TRPC: load messages with cursor pagination
   const messagesQuery = api.message.listBySession.useInfiniteQuery(
@@ -45,7 +52,8 @@ export function ChatInterface({ chatId, user: _user, onBack }: ChatInterfaceProp
   })
 
   const allPages = messagesQuery.data?.pages ?? []
-  const allMessages = allPages.flatMap((p) => p.items) ?? []
+  const serverMessages = allPages.flatMap((p) => p.items) ?? []
+  const allMessages = [...serverMessages, ...optimisticMessages]
   const hasMoreMessages = !!allPages.at(-1)?.nextCursor
 
   const scrollToBottom = () => {
@@ -59,6 +67,10 @@ export function ChatInterface({ chatId, user: _user, onBack }: ChatInterfaceProp
   useEffect(() => {
     scrollToBottom()
   }, [allMessages.length])
+
+  useEffect(() => {
+    if (streamBuffer) scrollToBottom()
+  }, [streamBuffer])
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -80,14 +92,60 @@ export function ChatInterface({ chatId, user: _user, onBack }: ChatInterfaceProp
     const content = prompt.trim()
     if (!content) return
 
-    await sendMutation.mutateAsync({ sessionId: chatId, content })
+    // Use streaming endpoint instead of tRPC send
+    setStreamError(null)
+    setStreaming(true)
+    setPrompt("")
+    // optimistic user message
+    const tempId = `temp-${Date.now()}`
+    setOptimisticMessages((prev) => [...prev, { id: tempId, role: "user", content, createdAt: new Date() }])
+    setStreamBuffer("")
+    try {
+      const res = await fetch("/api/chat/message/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: chatId, content }),
+      })
+      if (!res.ok || !res.body) {
+        throw new Error("Failed to start stream")
+      }
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let done = false
+      while (!done) {
+        const chunk = await reader.read()
+        done = chunk.done
+        if (chunk.value) {
+          const text = decoder.decode(chunk.value, { stream: true })
+          const events = text.split("\n\n").filter(Boolean)
+          for (const evt of events) {
+            if (!evt.startsWith("data: ")) continue
+            const payload = JSON.parse(evt.slice(6)) as { type: string; content?: string; id?: string; message?: string }
+            if (payload.type === "delta" && payload.content) {
+              setStreamBuffer((prev) => prev + payload.content!)
+            } else if (payload.type === "done") {
+              // refresh from server to include both messages
+              await messagesQuery.refetch()
+              setOptimisticMessages([])
+            } else if (payload.type === "error") {
+              setStreamError(payload.message ?? "Stream error")
+            }
+          }
+        }
+      }
+    } catch (err) {
+      setStreamError(err instanceof Error ? err.message : "Stream error")
+    } finally {
+      setStreaming(false)
+      setStreamBuffer("")
+    }
   }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="border-b bg-card px-3 sm:px-4 py-3 flex items-center space-x-3 sm:space-x-4 sticky top-0 z-50">
-        <Button variant="ghost" size="sm" onClick={onBack} className="flex-shrink-0 cursor-pointer">
+        <Button variant="ghost" size="sm" onClick={onBack ?? (() => router.push("/"))} className="flex-shrink-0 cursor-pointer">
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
@@ -164,7 +222,7 @@ export function ChatInterface({ chatId, user: _user, onBack }: ChatInterfaceProp
             </div>
           ))}
 
-          {sendMutation.isPending && (
+          {(sendMutation.isPending || streaming) && (
             <div className="flex items-start space-x-2 sm:space-x-3">
               <Avatar className="h-6 w-6 sm:h-8 sm:w-8">
                 <AvatarFallback className="bg-accent text-accent-foreground">
@@ -173,13 +231,23 @@ export function ChatInterface({ chatId, user: _user, onBack }: ChatInterfaceProp
               </Avatar>
               <Card className="bg-card">
                 <CardContent className="p-2 sm:p-3">
-                  <div className="flex items-center space-x-2">
-                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
-                    <span className="text-xs sm:text-sm text-muted-foreground">AI is thinking...</span>
-                  </div>
+                  {streamBuffer ? (
+                    <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">{streamBuffer}</p>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                      <span className="text-xs sm:text-sm text-muted-foreground">AI is typing...</span>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
+          )}
+
+          {(sendMutation.isError || streamError) && (
+            <Alert variant="destructive">
+              <AlertDescription>{streamError ?? "Failed to send message. Please try again."}</AlertDescription>
+            </Alert>
           )}
 
           <div ref={messagesEndRef} />
@@ -198,12 +266,12 @@ export function ChatInterface({ chatId, user: _user, onBack }: ChatInterfaceProp
                 onKeyDown={handleKeyPress}
                 placeholder="Ask me anything about your career..."
                 className="min-h-[40px] sm:min-h-[44px] resize-none text-sm sm:text-base"
-                disabled={sendMutation.isPending}
+                disabled={sendMutation.isPending || streaming}
               />
             </div>
             <Button
               type="submit"
-              disabled={!prompt.trim() || sendMutation.isPending}
+              disabled={!prompt.trim() || sendMutation.isPending || streaming}
               size="sm"
               className="h-[40px] sm:h-[44px] px-3 sm:px-4 flex-shrink-0 cursor-pointer"
             >

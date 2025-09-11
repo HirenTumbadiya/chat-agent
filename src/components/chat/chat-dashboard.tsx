@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -14,6 +15,8 @@ import { logout } from "@/app/(auth)/action"
 import { api } from "@/utils/trpc"
 import * as Dialog from "@radix-ui/react-dialog"
 import { Input } from "@/components/ui/input"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface User {
     id: string
@@ -26,6 +29,7 @@ interface ChatDashboardProps {
 }
 
 export function ChatDashboard({ user }: ChatDashboardProps) {
+    const router = useRouter()
     const [activeChat, setActiveChat] = useState<string | null>(null)
     const [isPending, startTransition] = useTransition()
     //   const [chatSessions, setChatSessions] = useState<ChatSession[]>([])
@@ -50,6 +54,7 @@ export function ChatDashboard({ user }: ChatDashboardProps) {
         onSuccess: (chat) => {
             sessionsQuery.refetch()
             setActiveChat(chat.id)
+            router.push(`/chat/${chat.id}`)
             setIsMobileMenuOpen(false)
         },
     })
@@ -133,9 +138,7 @@ export function ChatDashboard({ user }: ChatDashboardProps) {
         }
     }
 
-    if (activeChat) {
-        return <ChatInterface chatId={activeChat} user={user as User} onBack={handleBackToDashboard} />
-    }
+    // Chat content now lives at /chat/[id]; this page stays as dashboard
 
     const MobileUserMenu = () => (
         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
@@ -155,6 +158,7 @@ export function ChatDashboard({ user }: ChatDashboardProps) {
                             <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
                         </div>
                     </div>
+                    <ThemeToggle />
                     <Button onClick={handleNewChat} className="w-full cursor-pointer" disabled={createSession.isPending}>
                         <Plus className="h-4 w-4 mr-2" />
                         New Chat
@@ -225,6 +229,7 @@ export function ChatDashboard({ user }: ChatDashboardProps) {
 
                     {/* Desktop Navigation */}
                     <div className="hidden md:flex items-center space-x-4">
+                        <ThemeToggle />
                         <div className="flex items-center space-x-2">
                             <Avatar className="h-8 w-8">
                                 <AvatarFallback>{user?.name.charAt(0).toUpperCase()}</AvatarFallback>
@@ -281,6 +286,11 @@ export function ChatDashboard({ user }: ChatDashboardProps) {
                                         <Plus className="h-4 w-4 mr-2" />
                                         Start New Chat
                                     </Button>
+                                    {createSession.isError && (
+                                        <Alert variant="destructive" className="mt-4">
+                                            <AlertDescription>Failed to create a new chat. Please try again.</AlertDescription>
+                                        </Alert>
+                                    )}
                                 </CardContent>
                             </Card>
                         ) : (
@@ -290,7 +300,7 @@ export function ChatDashboard({ user }: ChatDashboardProps) {
                                         <Card
                                             key={session.id}
                                             className="cursor-pointer hover:shadow-md transition-shadow group"
-                                            onClick={() => setActiveChat(session.id)}
+                                            onClick={() => router.push(`/chat/${session.id}`)}
                                         >
                                             <CardHeader className="pb-2">
                                                 <div className="flex items-start justify-between">
@@ -304,7 +314,7 @@ export function ChatDashboard({ user }: ChatDashboardProps) {
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            className="cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 h-8 w-8 p-0"
+                                                            className="cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 h-8 px-2 py-1"
                                                             onClick={(e) => openRename(session.id, session.title ?? "", e)}
                                                         >
                                                             <span className="text-xs">Rename</span>
@@ -319,6 +329,13 @@ export function ChatDashboard({ user }: ChatDashboardProps) {
                                                         </Button>
                                                     </div>
                                                 </div>
+                                                {(renameSession.isError || deleteSession.isError) && (
+                                                    <Alert variant="destructive" className="mt-2">
+                                                        <AlertDescription>
+                                                            {renameSession.isError ? "Failed to rename. Try again." : "Failed to delete. Try again."}
+                                                        </AlertDescription>
+                                                    </Alert>
+                                                )}
                                             </CardHeader>
                                         </Card>
                                     ))}
