@@ -53,7 +53,7 @@ export default function SignupForm() {
       <CardHeader>
         <CardTitle>Create Account</CardTitle>
         <CardDescription>
-          Join Oration AI to start your career counseling journey
+          Join Career AI to start your career counseling journey
         </CardDescription>
       </CardHeader>
 

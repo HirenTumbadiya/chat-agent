@@ -219,7 +219,7 @@ export function ChatDashboard({ user }: ChatDashboardProps) {
             <header className="border-b bg-card sticky top-0 z-50">
                 <div className="container mx-auto px-4 py-3 sm:py-4 flex items-center justify-between">
                     <div className="flex items-center space-x-2 sm:space-x-4">
-                        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Oration AI</h1>
+                        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Career AI</h1>
                         <span className="hidden sm:inline text-muted-foreground">Career Counselor</span>
                     </div>
 
