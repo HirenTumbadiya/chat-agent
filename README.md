@@ -67,6 +67,10 @@ Open http://localhost:3000.
 - Chat sessions: create, list (infinite), rename, delete (with confirmation)
 - Messages: persisted per-session, infinite history load in UI
 - AI responses via OpenAI using recent conversation context
+- Streaming replies (SSE) with live typing indicator
+- Optimistic user message and auto-scroll during streaming
+- Deep-linkable chats at `/chat/[id]` (refresh keeps you on the same chat)
+- Theme toggle (light/dark) persisted in localStorage and respects system preference
 
 ## TRPC API
 - `session.list` (cursor, limit)
@@ -76,16 +80,51 @@ Open http://localhost:3000.
 - `message.listBySession` (cursor, limit)
 - `message.send` (persists user msg, calls OpenAI, persists assistant msg; auto-titles session if needed)
 
+## Streaming (SSE)
+- Endpoint: `POST /api/chat/message/stream`
+- Body: `{ sessionId: string, content: string }`
+- Server streams `data: { type: "delta", content }` events, followed by `data: { type: "done", id }` when complete
+- UI consumes the stream and shows a live-updating assistant bubble; on completion it refetches persisted messages
+
+Note: SSE is used instead of WebSocket subscriptions for compatibility with Vercel serverless runtime.
+
 ## Deployment (Vercel)
 - Set the same env vars in Vercel project settings
 - Point `DATABASE_URL` to production DB (Supabase/Neon) and set `DIRECT_URL`
 - Run Prisma migrations (via deploy hook or CLI) before first boot
 - Redeploy after any schema changes
 
+### Middleware placement
+Ensure auth middleware runs on Vercel by adding a root `middleware.ts` that re-exports the Supabase middleware:
+
+```ts
+// middleware.ts
+export { middleware, config } from "@/utils/supabase/middleware";
+```
+
 ## Notes on Supabase + Prisma
 - Supabase manages `auth.users`. Prisma should not migrate or create it.
 - Ensure your Prisma schema references `auth.users(id)` via foreign keys.
 - Use `DIRECT_URL` for running migrations (non-pooled) and `DATABASE_URL` for app runtime (pooled).
+
+If you map `User` to `auth.users` in Prisma, prefer schema-aware mapping and do not attempt to upsert into `auth.users` from the app:
+
+```prisma
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String?  @db.VarChar
+  createdAt DateTime @default(now()) @map("created_at")
+
+  profile   Profile?
+  sessions  ChatSession[]
+  messages  ChatMessage[]
+
+  @@map("users")
+  @@schema("auth")
+}
+```
+
+The app relies on Supabase Auth to create users; do not upsert `User` rows.
 
 ## Roadmap / Improvements
 - Streaming AI responses
