@@ -94,7 +94,6 @@ Open http://localhost:3000.
 - Better error boundaries and retries
 
 ## Screenshots
-- Add screenshots of login, dashboard, and chat.
 ![App Screenshot](./public/readme_image/login.png)
 ![App Screenshot](./public/readme_image/signup.png)
 ![App Screenshot](./public/readme_image/dashboard.png)
